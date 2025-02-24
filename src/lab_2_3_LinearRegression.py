@@ -59,12 +59,16 @@ class LinearRegressor:
         Returns:
             None: Modifies the model's coefficients and intercept in-place.
         """
-        # Calcular (X^T X) y su inversa
-        x_int = np.c_[np.ones(X.shape[0]),X]
-        matriz = np.linalg.inv(x_int.T @ x_int) @ x_int.T @ y
-        self.intercept = matriz[0]
-        self.coefficients = matriz[1:]
+        X = np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
 
+        Xt = np.transpose(X)
+
+        m1 = np.linalg.inv(np.dot(Xt, X))
+        m2 = np.dot(m1, Xt)
+        m = np.dot(m2, y)
+
+        self.intercept = m[-1]
+        self.coefficients = m[:-1]
     def predict(self, X):
         """
         Predict the dependent variable values using the fitted model.
@@ -82,7 +86,7 @@ class LinearRegressor:
             raise ValueError("Model is not yet fitted")
 
         if np.ndim(X) == 1:
-            predictions = X*self.coefficients + self.intercept
+            predictions = self.coefficients * X + self.intercept
         else:
             predictions = np.dot(X,self.coefficients) + self.intercept
         return predictions
@@ -97,8 +101,10 @@ def evaluate_regression(y_true, y_pred):
         y_pred (np.ndarray): Predicted values by the regression model.
 
     Returns:
+        
         dict: A dictionary containing the R^2, RMSE, and MAE values.
     """
+    n = y_true.shape[0]
     # R^2 Score
     rss = np.sum((y_true-y_pred)**2)
 
@@ -108,10 +114,12 @@ def evaluate_regression(y_true, y_pred):
     r_squared = 1-(rss/tss)
 
     # Root Mean Squared Error
-    rmse = np.sqrt(np.mean((y_true-y_pred)**2))
+    mse = np.sum((y_true-y_pred)**2)
+    rmse = np.sqrt(1/n*mse)
 
     # Mean Absolute Error
-    mae = np.mean(np.abs(y_true-y_pred))
+    sum_mae = np.sum(abs(y_true - y_pred))
+    mae = 1 / n * sum_mae
 
     return {"R2": r_squared, "RMSE": rmse, "MAE": mae}
 
